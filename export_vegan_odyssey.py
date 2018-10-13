@@ -110,17 +110,6 @@ def fix_export_presets(cfg):
 	write_lines(_export_presets_path, data)
 
 
-def _run_export(output):
-	process = subprocess.Popen(
-		["./godot.x11.tools.64", "--export", "Android",
-		output, "--path", "/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
-		stdout=subprocess.PIPE,
-		cwd="/home/pspz/Vegan Game/VO_godot/bin/"
-	)
-
-	stdout, stderr = process.communicate()
-
-
 def clean_godot():
 	process = subprocess.Popen(
 		["scons", "p=android", "--clean"],
@@ -135,6 +124,7 @@ def clean_godot():
 
 	stdout, stderr = process.communicate()
 
+
 def godot_export(apk_name):
 	print("Exporting with godot...")
 	output = os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name)
@@ -143,8 +133,18 @@ def godot_export(apk_name):
 		print("Removing {}...".format(output))
 		os.remove(output)
 
-	thread = threading.Thread(target=_run_export, args=(output, ))
-	thread.daemon = True
+	process = subprocess.Popen(
+		["./godot.x11.tools.64", "--export", "Android",
+		output, "--path", "/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
+		stdout=subprocess.PIPE,
+		cwd="/home/pspz/Vegan Game/VO_godot/bin/"
+	)
+
+	def _run_export(_process):
+		stdout, stderr = _process.communicate()
+
+
+	thread = threading.Thread(target=_run_export, args=(process, ))
 	thread.start()
 
 	while True:
@@ -152,7 +152,7 @@ def godot_export(apk_name):
 		if os.path.isfile(output):
 			print("APK CREATED!")
 			sleep(3)
-			thread.terminate()
+			process.terminate()
 			thread.join()
 			break
 		else:
