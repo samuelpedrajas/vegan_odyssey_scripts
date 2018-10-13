@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 
-from cfg import cfgs
+from cfg import template_builds
 
 
 if len(sys.argv) < 2:
@@ -119,13 +119,19 @@ def godot_export(apk_name):
 	process.kill()
 
 
-# main loop
-for cfg in cfgs:
-	print("Processing {}...".format(cfg["code"]))
+def compile_godot(arch, sdk):
+	pass
 
-	# export
-	fix_project_code(cfg)
-	fix_project_settings(cfg)
-	fix_export_presets(cfg)
-	version_code = get_version_code(cfg)
-	#godot_export(version_code + ".apk")
+
+# main loop
+for template_build in template_builds:
+	compile_godot(template_build["arch"], template_build["sdk"])
+	for cfg in template_build["cfgs"]:
+		print("Processing {}...".format(cfg["code"]))
+
+		# export
+		fix_project_code(cfg)
+		fix_project_settings(cfg)
+		fix_export_presets(cfg)
+		version_code = get_version_code(cfg)
+		#godot_export(version_code + ".apk")
