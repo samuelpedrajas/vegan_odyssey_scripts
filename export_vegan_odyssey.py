@@ -111,6 +111,7 @@ def fix_export_presets(cfg):
 
 
 def clean_godot():
+	print("Cleaning android build...")
 	process = subprocess.Popen(
 		["scons", "p=android", "--clean"],
 		stdout=subprocess.PIPE,
@@ -123,6 +124,8 @@ def clean_godot():
 	)
 
 	stdout, stderr = process.communicate()
+	print("Clean finished:")
+	print(stdout)
 
 
 def godot_export(apk_name):
@@ -210,7 +213,7 @@ def compile_godot(arch, sdk, bits=None):
 
 # main loop
 for template_build in template_builds:
-	#clean_godot()
+	clean_godot()
 	copyfile(
 		os.path.join("/home/pspz/Vegan Game/distribution/android_manifests",
 			template_build["manifest"]),
