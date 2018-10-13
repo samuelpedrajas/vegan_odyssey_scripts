@@ -18,20 +18,46 @@ template_builds = [
 	{
 		"sdk": "19",
 		"arch": "armv7",
-		"cfgs": [cfg_1911, cfg_1912, cfg_1913]
+		"manifest": "19X1-2.template",
+		"cfgs": [cfg_1911, cfg_1912]
+	}, 	{
+		"sdk": "19",
+		"arch": "armv7",
+		"manifest": "19X3.template",
+		"cfgs": [cfg_1913]
+	},	{
+		"sdk": "21",
+		"arch": "arm64v8",
+		"manifest": "21X1-2.template",
+		"cfgs": [cfg_2121, cfg_2122]
 	}, 	{
 		"sdk": "21",
 		"arch": "arm64v8",
-		"cfgs": [cfg_2121, cfg_2122, cfg_2123]
+		"manifest": "21X3.template",
+		"cfgs": [cfg_2123]
 	}, 	{
 		"sdk": "19",
 		"arch": "x86",
 		"bits": "32",
-		"cfgs": [cfg_1931, cfg_1932, cfg_1933]
+		"manifest": "19X1-2.template",
+		"cfgs": [cfg_1931, cfg_1932]
+	}, 	{
+		"sdk": "19",
+		"arch": "x86",
+		"bits": "32",
+		"manifest": "19X3.template",
+		"cfgs": [cfg_1933]
 	}, 	{
 		"sdk": "19",
 		"arch": "x86",
 		"bits": "64",
-		"cfgs": [cfg_1941, cfg_1942, cfg_1943]
+		"manifest": "19X1-2.template",
+		"cfgs": [cfg_1941, cfg_1942]
+	}, 	{
+		"sdk": "19",
+		"arch": "x86",
+		"bits": "64",
+		"manifest": "19X3.template",
+		"cfgs": [cfg_1943]
 	}
 ]

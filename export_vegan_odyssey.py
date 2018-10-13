@@ -3,8 +3,9 @@ import subprocess
 import sys
 import threading
 
-from time import sleep
 from cfg import template_builds
+from shutil import copyfile
+from time import sleep
 
 
 if len(sys.argv) < 2:
@@ -120,17 +121,38 @@ def _run_export(output):
 	stdout, stderr = process.communicate()
 
 
+def clean_godot():
+	process = subprocess.Popen(
+		["scons", "p=android", "--clean"],
+		stdout=subprocess.PIPE,
+		cwd="/home/pspz/Vegan Game/VO_godot/",
+		env={
+			**os.environ,
+			"ANDROID_HOME": "/home/pspz/Android/Sdk",
+			"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle"
+		}
+	)
+
+	stdout, stderr = process.communicate()
+
 def godot_export(apk_name):
 	print("Exporting with godot...")
 	output = os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name)
 
+	if os.path.isfile(output):
+		print("Removing {}...".format(output))
+		os.remove(output)
+
 	thread = threading.Thread(target=_run_export, args=(output, ))
+	thread.daemon = True
 	thread.start()
 
 	while True:
 		sleep(3)
 		if os.path.isfile(output):
 			print("APK CREATED!")
+			sleep(3)
+			thread.terminate()
 			thread.join()
 			break
 		else:
@@ -139,8 +161,6 @@ def godot_export(apk_name):
 
 
 def compile_godot(arch, sdk, bits=None):
-	# clean project
-	# copy manifest
 	cmd = ["scons", "optimize=custom", "platform=android", "android_arch={}".format(arch),
 	"target=release", "android_neon=no", "deprecated=no", "xml=no", "disable_3d=yes",
 	"android_stl=yes", "game_center=no", "store_kit=no", "icloud=no", "module_bmp_enabled=no",
@@ -190,6 +210,13 @@ def compile_godot(arch, sdk, bits=None):
 
 # main loop
 for template_build in template_builds:
+	#clean_godot()
+	copyfile(
+		os.path.join("/home/pspz/Vegan Game/distribution/android_manifests",
+			template_build["manifest"]),
+		"/home/pspz/Vegan Game/VO_godot/platform/android/AndroidManifest.xml.template"
+	)
+	print("Manifest copied:", template_build["manifest"])
 	bits = template_build.get("bits", None)
 	compile_godot(template_build["arch"], template_build["sdk"], bits)
 
