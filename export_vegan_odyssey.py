@@ -119,17 +119,65 @@ def godot_export(apk_name):
 	process.kill()
 
 
-def compile_godot(arch, sdk):
-	pass
+def compile_godot(arch, sdk, bits=None):
+	# clean project
+	# copy manifest
+	cmd = ["scons", "optimize=custom", "platform=android", "android_arch={}".format(arch),
+	"target=release", "android_neon=no", "deprecated=no", "xml=no", "disable_3d=yes",
+	"android_stl=yes", "game_center=no", "store_kit=no", "icloud=no", "module_bmp_enabled=no",
+	"module_bullet_enabled=no", "module_dds_enabled=no", "module_mobile_vr_enabled=no",
+	"module_opus_enabled=no", "module_pvr_enabled=no", "module_svg_enabled=no",
+	"module_tga_enabled=no", "module_theora_enabled=no", "module_visual_script_enabled=no",
+	"module_webm_enabled=no", "verbose=no", "ndk_platform=android-{}".format(sdk), "-j4"]
+
+	if bits is not None:
+		cmd = cmd + ["bits=" + bits]
+
+	print("Compiling using:")
+	print(" ".join(cmd))
+
+	process = subprocess.Popen(
+		cmd,
+		stdout=subprocess.PIPE,
+		cwd="/home/pspz/Vegan Game/VO_godot/",
+		env={
+			**os.environ,
+			"ANDROID_HOME": "/home/pspz/Android/Sdk",
+			"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle"
+		}
+	)
+
+	stdout, stderr = process.communicate()
+	print("Finished compiling:")
+	print(stdout)
+
+
+	print("Starting gradle")
+	process = subprocess.Popen(
+		["./gradlew", "build"],
+		stdout=subprocess.PIPE,
+		cwd="/home/pspz/Vegan Game/VO_godot/platform/android/java",
+		env={
+			**os.environ,
+			"ANDROID_HOME": "/home/pspz/Android/Sdk",
+			"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle"
+		}
+	)
+
+	stdout, stderr = process.communicate()
+	print("Finished gradle:")
+	print(stdout)
 
 
 # main loop
 for template_build in template_builds:
-	compile_godot(template_build["arch"], template_build["sdk"])
+	bits = template_build.get("bits", None)
+	compile_godot(template_build["arch"], template_build["sdk"], bits)
+
 	for cfg in template_build["cfgs"]:
+		#export
 		print("Processing {}...".format(cfg["code"]))
 
-		# export
 		fix_project_code(cfg)
 		fix_project_settings(cfg)
 		fix_export_presets(cfg)
