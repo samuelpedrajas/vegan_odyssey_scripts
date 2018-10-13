@@ -1,13 +1,16 @@
 import os
 import subprocess
 import sys
+import threading
 
+from time import sleep
 from cfg import template_builds
 
 
 if len(sys.argv) < 2:
 	print("Specify a version! (e.g: 1022)")
 	sys.exit()
+
 
 version = sys.argv[1]
 
@@ -106,17 +109,33 @@ def fix_export_presets(cfg):
 	write_lines(_export_presets_path, data)
 
 
-def godot_export(apk_name):
-	output = os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name)
+def _run_export(output):
 	process = subprocess.Popen(
-		["/home/pspz/Vegan Game/VO_godot/bin/godot.x11.tools.64", "--export", "Android",
+		["./godot.x11.tools.64", "--export", "Android",
 		output, "--path", "/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
-		stdout=subprocess.PIPE
+		stdout=subprocess.PIPE,
+		cwd="/home/pspz/Vegan Game/VO_godot/bin/"
 	)
 
 	stdout, stderr = process.communicate()
 
-	process.kill()
+
+def godot_export(apk_name):
+	print("Exporting with godot...")
+	output = os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name)
+
+	thread = threading.Thread(target=_run_export, args=(output, ))
+	thread.start()
+
+	while True:
+		sleep(3)
+		if os.path.isfile(output):
+			print("APK CREATED!")
+			thread.join()
+			break
+		else:
+			print("APK STILL PENDING...")
+
 
 
 def compile_godot(arch, sdk, bits=None):
@@ -182,4 +201,4 @@ for template_build in template_builds:
 		fix_project_settings(cfg)
 		fix_export_presets(cfg)
 		version_code = get_version_code(cfg)
-		#godot_export(version_code + ".apk")
+		godot_export(version_code + ".apk")
