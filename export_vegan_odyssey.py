@@ -34,6 +34,21 @@ def get_version_code(cfg):
 	return cfg["code"].replace("XXXX", version)
 
 
+def fix_project_settings(cfg):
+	print("Fixing project settings...")
+	_project_settings_path = "/home/pspz/Vegan Game/src/project.godot"
+
+	data = read_lines(_project_settings_path)
+
+	# for every line
+	for i, l in enumerate(data):
+		if "window/handheld/orientation" in l:
+				new_v = cfg["godot"]["orientation"]
+				data[i] = get_new_line(l, "window/handheld/orientation", new_v, cfg)
+
+	write_lines(_project_settings_path, data)
+
+
 def fix_export_presets(cfg):
 	print("Fixing export presets...")
 	_export_presets_path = "/home/pspz/Vegan Game/src/export_presets.cfg"
@@ -92,6 +107,7 @@ for cfg in cfgs:
 	print("Processing {}...".format(cfg["code"]))
 
 	# export
+	fix_project_settings(cfg)
 	fix_export_presets(cfg)
 	version_code = get_version_code(cfg)
-	godot_export(version_code + ".apk")
+	#godot_export(version_code + ".apk")

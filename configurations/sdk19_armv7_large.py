@@ -5,7 +5,7 @@ cfg = {
 		"arch": "armv7"
 	},
 	"godot": {
-		"orientation": "portrait",
+		"orientation": '"portrait"',
 		"f": "1.20"
 	},
 	"export": {
