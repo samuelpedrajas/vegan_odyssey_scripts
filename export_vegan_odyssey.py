@@ -75,14 +75,16 @@ def fix_export_presets(cfg):
 
 
 def godot_export(apk_name):
+	output = os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name)
 	process = subprocess.Popen(
 		["/home/pspz/Vegan Game/VO_godot/bin/godot.x11.tools.64", "--export", "Android",
-		os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name), "--path",
-		"/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
+		output, "--path", "/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
 		stdout=subprocess.PIPE
 	)
 
 	stdout, stderr = process.communicate()
+
+	process.kill()
 
 
 # main loop
