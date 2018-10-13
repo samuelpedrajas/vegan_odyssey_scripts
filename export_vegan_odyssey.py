@@ -1,9 +1,15 @@
+import os
+import subprocess
+import sys
+
 from cfg import cfgs
-from os import listdir
-from os.path import isfile, join
 
 
-version = input("Introduce version: ")
+if len(sys.argv) < 2:
+	print("Specify a version! (e.g: 1022)")
+	sys.exit()
+
+version = sys.argv[1]
 
 
 def read_lines(_path):
@@ -22,6 +28,10 @@ def write_lines(_path, data):
 def get_new_line(l, r, v, cfg):
 	k, old_v = l.split("=")
 	return "=".join([k, v]) + "\n"
+
+
+def get_version_code(cfg):
+	return cfg["code"].replace("XXXX", version)
 
 
 def fix_export_presets(cfg):
@@ -45,7 +55,7 @@ def fix_export_presets(cfg):
 	# for every line
 	for i, l in enumerate(data):
 		if "version/code" in l:
-				new_v = cfg["code"].replace("XXXX", version)
+				new_v = get_version_code(cfg)
 				data[i] = get_new_line(l, replacement, new_v, cfg)
 
 		elif "version/name" in l:
@@ -64,9 +74,22 @@ def fix_export_presets(cfg):
 	write_lines(_export_presets_path, data)
 
 
+def godot_export(apk_name):
+	process = subprocess.Popen(
+		["/home/pspz/Vegan Game/VO_godot/bin/godot.x11.tools.64", "--export", "Android",
+		os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name), "--path",
+		"/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
+		stdout=subprocess.PIPE
+	)
+
+	stdout, stderr = process.communicate()
+
+
 # main loop
 for cfg in cfgs:
 	print("Processing {}...".format(cfg["code"]))
 
 	# export
 	fix_export_presets(cfg)
+	version_code = get_version_code(cfg)
+	godot_export(version_code + ".apk")
