@@ -34,6 +34,23 @@ def get_version_code(cfg):
 	return cfg["code"].replace("XXXX", version)
 
 
+def fix_project_code(cfg):
+	print("Fixing project code...")
+	_resizer_path = "/home/pspz/Vegan Game/src/scripts/resizer.gd"
+
+	#var _f = 1.00
+
+	data = read_lines(_resizer_path)
+
+	# for every line
+	for i, l in enumerate(data):
+		if "var _f" in l:
+				new_v = " " + cfg["godot"]["f"]
+				data[i] = get_new_line(l, "var _f ", new_v, cfg)
+
+	write_lines(_resizer_path, data)
+
+
 def fix_project_settings(cfg):
 	print("Fixing project settings...")
 	_project_settings_path = "/home/pspz/Vegan Game/src/project.godot"
@@ -107,6 +124,7 @@ for cfg in cfgs:
 	print("Processing {}...".format(cfg["code"]))
 
 	# export
+	fix_project_code(cfg)
 	fix_project_settings(cfg)
 	fix_export_presets(cfg)
 	version_code = get_version_code(cfg)
