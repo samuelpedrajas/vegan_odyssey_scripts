@@ -196,7 +196,7 @@ def compile_godot(arch, sdk, bits=None):
 
 	print("Starting gradle")
 	process = subprocess.Popen(
-		["./gradlew", "build"],
+		["./gradlew", "build", "-PMIN_SDK_VERSION={}".format(sdk)],
 		stdout=subprocess.PIPE,
 		cwd="/home/pspz/Vegan Game/VO_godot/platform/android/java",
 		env={
