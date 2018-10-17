@@ -90,17 +90,17 @@ def fix_export_presets(cfg):
 
 	# for every line
 	for i, l in enumerate(data):
-		if "version/code" in l:
+		if "version/code=" in l:
 				new_v = get_version_code(cfg)
 				data[i] = get_new_line(l, replacement, new_v, cfg)
 
-		elif "version/name" in l:
+		elif "version/name=" in l:
 			new_v = '"' + ".".join([version[0], version[1], version[2:]]) + '"'
 			data[i] = get_new_line(l, replacement, new_v, cfg)
 
 		else:
 			for replacement in replacements:
-				if replacement in l:
+				if replacement + "=" in l:
 					new_v = cfg["export"][replacement]
 					data[i] = get_new_line(l, replacement, new_v, cfg)
 					print("Replaced {} by {}".format(l, data[i]))
@@ -163,7 +163,7 @@ def godot_export(apk_name):
 
 
 
-def compile_godot(arch, sdk, bits=None):
+def compile_godot(arch, sdk):
 	cmd = ["scons", "optimize=custom", "platform=android", "android_arch={}".format(arch),
 	"target=release", "android_neon=no", "deprecated=no", "xml=no", "disable_3d=yes",
 	"android_stl=yes", "game_center=no", "store_kit=no", "icloud=no", "module_bmp_enabled=no",
@@ -171,9 +171,6 @@ def compile_godot(arch, sdk, bits=None):
 	"module_opus_enabled=no", "module_pvr_enabled=no", "module_svg_enabled=no",
 	"module_tga_enabled=no", "module_theora_enabled=no", "module_visual_script_enabled=no",
 	"module_webm_enabled=no", "verbose=no", "ndk_platform=android-{}".format(sdk), "-j4"]
-
-	if bits is not None:
-		cmd = cmd + ["bits=" + bits]
 
 	print("Compiling using:")
 	print(" ".join(cmd))
@@ -220,8 +217,7 @@ for template_build in template_builds:
 		"/home/pspz/Vegan Game/VO_godot/platform/android/AndroidManifest.xml.template"
 	)
 	print("Manifest copied:", template_build["manifest"])
-	bits = template_build.get("bits", None)
-	compile_godot(template_build["arch"], template_build["sdk"], bits)
+	compile_godot(template_build["arch"], template_build["sdk"])
 
 	for cfg in template_build["cfgs"]:
 		#export
