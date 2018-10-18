@@ -38,7 +38,7 @@ def get_new_line(l, r, v, cfg):
 
 
 def get_version_code(cfg, version):
-	return cfg["code"].replace("XXXX", version[4:])
+	return cfg["code"].replace("XXXX", version)
 
 
 def fix_project_code(cfg):
@@ -229,7 +229,7 @@ def main(version):
 					continue
 
 				prepare_templates(template_build)
-				export_cfg(cfg, version, out)
+				export_cfg(cfg, version[4:], out)
 				return
 		print("NO SPECIFIC RELEASE FOUND: {}".format(version))
 	else:
