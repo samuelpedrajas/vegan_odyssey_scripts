@@ -3,17 +3,20 @@ import subprocess
 import sys
 import threading
 
-from cfg import template_builds
 from shutil import copyfile
 from time import sleep
 
-
-if len(sys.argv) < 2:
-	print("Specify a version! (e.g: 1022)")
-	sys.exit()
+from cfg import template_builds
 
 
-version = sys.argv[1]
+PROJECT_DIR = "/home/pspz/Vegan Game/"
+SRC_DIR = os.path.join(PROJECT_DIR, "src/")
+GODOT_DIR = os.path.join(PROJECT_DIR, "VO_godot/")
+ANDROID_ENV = {
+	"ANDROID_HOME": "/home/pspz/Android/Sdk",
+	"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle",
+	**os.environ
+}
 
 
 def read_lines(_path):
@@ -34,13 +37,13 @@ def get_new_line(l, r, v, cfg):
 	return "=".join([k, v]) + "\n"
 
 
-def get_version_code(cfg):
-	return cfg["code"].replace("XXXX", version)
+def get_version_code(cfg, version):
+	return cfg["code"].replace("XXXX", version[4:])
 
 
 def fix_project_code(cfg):
 	print("Fixing project code...")
-	_resizer_path = "/home/pspz/Vegan Game/src/scripts/resizer.gd"
+	_resizer_path = os.path.join(SRC_DIR, "scripts/resizer.gd")
 
 	#var _f = 1.00
 
@@ -57,7 +60,7 @@ def fix_project_code(cfg):
 
 def fix_project_settings(cfg):
 	print("Fixing project settings...")
-	_project_settings_path = "/home/pspz/Vegan Game/src/project.godot"
+	_project_settings_path = os.path.join(SRC_DIR, "project.godot")
 
 	data = read_lines(_project_settings_path)
 
@@ -70,36 +73,24 @@ def fix_project_settings(cfg):
 	write_lines(_project_settings_path, data)
 
 
-def fix_export_presets(cfg):
+def fix_export_presets(cfg, version):
 	print("Fixing export presets...")
-	_export_presets_path = "/home/pspz/Vegan Game/src/export_presets.cfg"
+	_export_presets_path = os.path.join(SRC_DIR, "export_presets.cfg")
 
 	data = read_lines(_export_presets_path)
-
-	replacements = [
-		"architectures/armeabi-v7a",
-		"architectures/arm64-v8a",
-		"architectures/x86",
-		"architectures/x86_64",
-
-		"screen/support_small",
-		"screen/support_normal",
-		"screen/support_large",
-		"screen/support_xlarge"
-	]
 
 	# for every line
 	for i, l in enumerate(data):
 		if "version/code=" in l:
-				new_v = get_version_code(cfg)
-				data[i] = get_new_line(l, replacement, new_v, cfg)
+				new_v = get_version_code(cfg, version)
+				data[i] = get_new_line(l, "version/code", new_v, cfg)
 
 		elif "version/name=" in l:
 			new_v = '"' + ".".join([version[0], version[1], version[2:]]) + '"'
-			data[i] = get_new_line(l, replacement, new_v, cfg)
+			data[i] = get_new_line(l, "version/name", new_v, cfg)
 
 		else:
-			for replacement in replacements:
+			for replacement in cfg["export"].keys():
 				if replacement + "=" in l:
 					new_v = cfg["export"][replacement]
 					data[i] = get_new_line(l, replacement, new_v, cfg)
@@ -110,37 +101,17 @@ def fix_export_presets(cfg):
 	write_lines(_export_presets_path, data)
 
 
-def clean_godot():
-	print("Cleaning android build...")
-	process = subprocess.Popen(
-		["scons", "p=android", "--clean"],
-		stdout=subprocess.PIPE,
-		cwd="/home/pspz/Vegan Game/VO_godot/",
-		env={
-			**os.environ,
-			"ANDROID_HOME": "/home/pspz/Android/Sdk",
-			"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle"
-		}
-	)
-
-	stdout, stderr = process.communicate()
-	print("Clean finished:")
-	print(stdout)
-
-
-def godot_export(apk_name):
+def godot_export(output):
 	print("Exporting with godot...")
-	output = os.path.join("/home/pspz/Vegan Game/distribution/out/", apk_name)
-
 	if os.path.isfile(output):
 		print("Removing {}...".format(output))
 		os.remove(output)
 
 	process = subprocess.Popen(
 		["./godot.x11.tools.64", "--export", "Android",
-		output, "--path", "/home/pspz/Vegan Game/src", "--audio-driver", "ALSA", "--editor"],
+		output, "--path", SRC_DIR, "--audio-driver", "ALSA", "--editor"],
 		stdout=subprocess.PIPE,
-		cwd="/home/pspz/Vegan Game/VO_godot/bin/"
+		cwd=os.path.join(GODOT_DIR, "bin/")
 	)
 
 	def _run_export(_process):
@@ -162,8 +133,28 @@ def godot_export(apk_name):
 			print("APK STILL PENDING...")
 
 
+def _clean_godot():
+	print("Cleaning android build...")
 
-def compile_godot(arch, sdk):
+	for template in ["android_debug.apk", "android_release.apk"]:
+		template_path = os.path.join(GODOT_DIR, "bin/", template)
+		if os.path.isfile(template_path):
+			print("Removing {}...".format(template_path))
+			os.remove(template_path)
+
+	process = subprocess.Popen(
+		["scons", "p=android", "--clean"],
+		stdout=subprocess.PIPE,
+		cwd=GODOT_DIR,
+		env=ANDROID_ENV
+	)
+
+	stdout, stderr = process.communicate()
+	print("Clean finished:")
+	print(stdout)
+
+
+def _compile_godot(arch, sdk):
 	cmd = ["scons", "optimize=custom", "platform=android", "android_arch={}".format(arch),
 	"target=release", "android_neon=no", "deprecated=no", "xml=no", "disable_3d=yes",
 	"android_stl=yes", "game_center=no", "store_kit=no", "icloud=no", "module_bmp_enabled=no",
@@ -178,12 +169,8 @@ def compile_godot(arch, sdk):
 	process = subprocess.Popen(
 		cmd,
 		stdout=subprocess.PIPE,
-		cwd="/home/pspz/Vegan Game/VO_godot/",
-		env={
-			**os.environ,
-			"ANDROID_HOME": "/home/pspz/Android/Sdk",
-			"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle"
-		}
+		cwd=GODOT_DIR,
+		env=ANDROID_ENV
 	)
 
 	stdout, stderr = process.communicate()
@@ -191,16 +178,13 @@ def compile_godot(arch, sdk):
 	print(stdout)
 
 
+def _gradlew_build(sdk):
 	print("Starting gradle")
 	process = subprocess.Popen(
 		["./gradlew", "build", "-PMIN_SDK_VERSION={}".format(sdk)],
 		stdout=subprocess.PIPE,
-		cwd="/home/pspz/Vegan Game/VO_godot/platform/android/java",
-		env={
-			**os.environ,
-			"ANDROID_HOME": "/home/pspz/Android/Sdk",
-			"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle"
-		}
+		cwd=os.path.join(GODOT_DIR, "platform/android/java"),
+		env=ANDROID_ENV
 	)
 
 	stdout, stderr = process.communicate()
@@ -208,23 +192,58 @@ def compile_godot(arch, sdk):
 	print(stdout)
 
 
-# main loop
-for template_build in template_builds:
-	clean_godot()
+def prepare_templates(template_build):
+	_clean_godot()
+
 	copyfile(
-		os.path.join("/home/pspz/Vegan Game/distribution/android_manifests",
-			template_build["manifest"]),
-		"/home/pspz/Vegan Game/VO_godot/platform/android/AndroidManifest.xml.template"
+		os.path.join(PROJECT_DIR, "distribution/android_manifests", template_build["manifest"]),
+		os.path.join(GODOT_DIR, "platform/android/AndroidManifest.xml.template")
 	)
 	print("Manifest copied:", template_build["manifest"])
-	compile_godot(template_build["arch"], template_build["sdk"])
 
-	for cfg in template_build["cfgs"]:
-		#export
-		print("Processing {}...".format(cfg["code"]))
+	arch, sdk = template_build["arch"], template_build["sdk"]
 
-		fix_project_code(cfg)
-		fix_project_settings(cfg)
-		fix_export_presets(cfg)
-		version_code = get_version_code(cfg)
-		godot_export(version_code + ".apk")
+	_compile_godot(arch, sdk)
+	_gradlew_build(sdk)
+
+
+def export_cfg(cfg, version, out):
+	#export
+	print("Processing {}...".format(cfg["code"]))
+
+	fix_project_code(cfg)
+	fix_project_settings(cfg)
+	fix_export_presets(cfg, version)
+	version_code = get_version_code(cfg, version)
+	godot_export(os.path.join(out, version_code + ".apk"))
+
+
+def main(version):
+	specific_release = len(version) > 4
+
+	if specific_release:
+		out = os.path.join(PROJECT_DIR, "distribution/")
+		for template_build in template_builds:
+			for cfg in template_build["cfgs"]:
+				if version[:4] != cfg["code"][:4]:
+					continue
+
+				prepare_templates(template_build)
+				export_cfg(cfg, version, out)
+				return
+		print("NO SPECIFIC RELEASE FOUND: {}".format(version))
+	else:
+		out = os.path.join(PROJECT_DIR, "distribution/out/")
+		# loop through all
+		for template_build in template_builds:
+			prepare_templates(template_build)
+
+			for cfg in template_build["cfgs"]:
+				export_cfg(cfg, version, out)
+
+
+if __name__ == "__main__":
+	if len(sys.argv) < 2:
+		print("Specify a version! (e.g: 1022)")
+		sys.exit()
+	main(sys.argv[1])
