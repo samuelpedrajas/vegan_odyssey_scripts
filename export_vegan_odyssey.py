@@ -17,6 +17,7 @@ ANDROID_ENV = {
 	"ANDROID_NDK_ROOT": "/home/pspz/Android/Sdk/ndk-bundle",
 	**os.environ
 }
+PRODUCTION_MODE = True
 
 
 def read_lines(_path):
@@ -46,16 +47,30 @@ def fix_project_code(cfg):
 	_resizer_path = os.path.join(SRC_DIR, "scripts/resizer.gd")
 
 	#var _f = 1.00
-
 	data = read_lines(_resizer_path)
 
 	# for every line
 	for i, l in enumerate(data):
 		if "var _f" in l:
-				new_v = " " + cfg["godot"]["f"]
-				data[i] = get_new_line(l, "var _f ", new_v)
+				data[i] = get_new_line(l, "var _f ", " " + cfg["godot"]["f"])
 
 	write_lines(_resizer_path, data)
+
+	ad_test_id = '"ca-app-pub-3940256099942544/5224354917"'
+	ad_real_id = '"ca-app-pub-1160358939410189/4394674925"'
+	used_id = ad_real_id if PRODUCTION_MODE else ad_test_id
+
+	_admob_path = os.path.join(SRC_DIR, "scripts/autoload/admob.gd")
+
+	# var adRewardedId = "ca-app-pub-3940256099942544/1712485313"
+	data = read_lines(_admob_path)
+
+	# for every line
+	for i, l in enumerate(data):
+		if "var adRewardedId" in l:
+				data[i] = get_new_line(l, "var adRewardedId ", " " + used_id)
+
+	write_lines(_admob_path, data)
 
 
 def fix_project_settings(cfg):
@@ -64,17 +79,27 @@ def fix_project_settings(cfg):
 
 	data = read_lines(_project_settings_path)
 
-
+	rendering_pos = -1
+	driver_name_found = False
+	audio_driver_found = False
 
 	# for every line
 	for i, l in enumerate(data):
 		if "window/handheld/orientation" in l:
-				new_v = cfg["godot"]["orientation"]
-				data[i] = get_new_line(l, "window/handheld/orientation", new_v)
+			new_v = cfg["godot"]["orientation"]
+			data[i] = get_new_line(l, "window/handheld/orientation", new_v)
 		elif "[rendering]" in l:
-				data[i] = '[rendering]\n\nquality/driver/driver_name="GLES2"'
+			rendering_pos = i
+		elif "quality/driver/driver_name" in l:
+			driver_name_found = True
+		elif 'driver="Android"' in l:
+			audio_driver_found = True
 
-	data[len(data) - 1] += '\n[audio]\n\ndriver="Android"\n'
+	if not driver_name_found:
+		data[rendering_pos] = '[rendering]\n\nquality/driver/driver_name="GLES2"'
+
+	if not audio_driver_found:
+		data[len(data) - 1] += '\n[audio]\n\ndriver="Android"\n'
 
 	write_lines(_project_settings_path, data)
 
@@ -122,7 +147,6 @@ def godot_export(output):
 
 	def _run_export(_process):
 		stdout, stderr = _process.communicate()
-
 
 	thread = threading.Thread(target=_run_export, args=(process, ))
 	thread.start()
@@ -252,4 +276,7 @@ if __name__ == "__main__":
 	if len(sys.argv) < 2:
 		print("Specify a version! (e.g: 1022)")
 		sys.exit()
+	elif len(sys.argv) > 2:
+		PRODUCTION_MODE = False
+
 	main(sys.argv[1])
