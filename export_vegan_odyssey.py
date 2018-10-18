@@ -32,7 +32,7 @@ def write_lines(_path, data):
 	    file.writelines(data)
 
 
-def get_new_line(l, r, v, cfg):
+def get_new_line(l, r, v):
 	k, old_v = l.split("=")
 	return "=".join([k, v]) + "\n"
 
@@ -53,7 +53,7 @@ def fix_project_code(cfg):
 	for i, l in enumerate(data):
 		if "var _f" in l:
 				new_v = " " + cfg["godot"]["f"]
-				data[i] = get_new_line(l, "var _f ", new_v, cfg)
+				data[i] = get_new_line(l, "var _f ", new_v)
 
 	write_lines(_resizer_path, data)
 
@@ -64,11 +64,17 @@ def fix_project_settings(cfg):
 
 	data = read_lines(_project_settings_path)
 
+
+
 	# for every line
 	for i, l in enumerate(data):
 		if "window/handheld/orientation" in l:
 				new_v = cfg["godot"]["orientation"]
-				data[i] = get_new_line(l, "window/handheld/orientation", new_v, cfg)
+				data[i] = get_new_line(l, "window/handheld/orientation", new_v)
+		elif "[rendering]" in l:
+				data[i] = '[rendering]\n\nquality/driver/driver_name="GLES2"'
+
+	data[len(data) - 1] += '\n[audio]\n\ndriver="Android"\n'
 
 	write_lines(_project_settings_path, data)
 
@@ -83,17 +89,17 @@ def fix_export_presets(cfg, version):
 	for i, l in enumerate(data):
 		if "version/code=" in l:
 				new_v = get_version_code(cfg, version)
-				data[i] = get_new_line(l, "version/code", new_v, cfg)
+				data[i] = get_new_line(l, "version/code", new_v)
 
 		elif "version/name=" in l:
 			new_v = '"' + ".".join([version[0], version[1], version[2:]]) + '"'
-			data[i] = get_new_line(l, "version/name", new_v, cfg)
+			data[i] = get_new_line(l, "version/name", new_v)
 
 		else:
 			for replacement in cfg["export"].keys():
 				if replacement + "=" in l:
 					new_v = cfg["export"][replacement]
-					data[i] = get_new_line(l, replacement, new_v, cfg)
+					data[i] = get_new_line(l, replacement, new_v)
 					print("Replaced {} by {}".format(l, data[i]))
 
 					break
